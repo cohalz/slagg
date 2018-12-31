@@ -1,0 +1,47 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: "API to aggregate multiple slack channels."
+
+Resources:
+  SlaggFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: SlaggFunction
+      CodeUri: src/
+      Handler: index.handler
+      Runtime: python3.6
+      Timeout: 10
+      AutoPublishAlias: live
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref SlaggTable
+      Tags:
+        Service: 'system'
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref SlaggTable
+          SLACK_TOKEN: 'slack-token-for-users-and-channels'
+          SLACK_WEBHOOK: 'webhook-for-post-slack'
+      Events:
+        SlaggApi:
+          Type: Api
+          Properties:
+            Path: /
+            Method: post
+
+  SlaggTable:
+    Type: 'AWS::DynamoDB::Table'
+    Properties:
+      TableName: slagg-table
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+
+Outputs:
+  Api:
+    Description: "API URL"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
